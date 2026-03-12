@@ -31,7 +31,7 @@ jobs:
 
       - name: 🎨 自动生成【黑底白点】桌面图标
         run: |
-          python3 -m pip install Pillow
+          python3 -m pip install Pillow --break-system-packages
           cat << 'EOF' > generate_icon.py
           from PIL import Image, ImageDraw
           img = Image.new('RGB', (1024, 1024), color='black')
