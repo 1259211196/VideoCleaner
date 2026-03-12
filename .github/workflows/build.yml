@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: 📥 拉取最新代码
-        uses: actions/checkout@v4 # 升级到 v4
+        uses: actions/checkout@v4
 
       - name: 🛠️ 部署云端 Flutter 环境
         uses: subosito/flutter-action@v2
@@ -20,6 +20,9 @@ jobs:
 
       - name: 🏗️ 自动生成 iOS 底层框架
         run: flutter create --project-name video_cleaner .
+
+      - name: 🍏 强行拉升 iOS 最低支持版本 (突破 FFmpegKit 限制)
+        run: sed -i '' "s/^# platform :ios.*/platform :ios, '13.0'/g" ios/Podfile
 
       - name: 📦 下载所有依赖武器
         run: flutter pub get
@@ -35,7 +38,7 @@ jobs:
           zip -qr 洗白脚本-TrollStore.ipa Payload
 
       - name: 🎁 输出巨魔安装包下载链接！
-        uses: actions/upload-artifact@v4 # 核心修复：升级到 v4
+        uses: actions/upload-artifact@v4
         with:
           name: 洗白脚本-iOS-巨魔安装包
           path: build/ios/iphoneos/洗白脚本-TrollStore.ipa
