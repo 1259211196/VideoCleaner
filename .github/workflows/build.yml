@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-latest # 调用 GitHub 免费提供的 Mac 云服务器
+    runs-on: macos-latest
 
     steps:
       - name: 📥 拉取最新代码
@@ -21,13 +21,33 @@ jobs:
       - name: 🏗️ 自动生成 iOS 底层框架
         run: flutter create --project-name video_cleaner .
 
-      - name: 🍏 强行拉升 iOS 最低支持版本 (突破 FFmpegKit 限制)
+      - name: 🍏 强行拉升 iOS 最低支持版本
         run: sed -i '' "s/^# platform :ios.*/platform :ios, '13.0'/g" ios/Podfile
 
-      - name: 📦 下载所有依赖武器
-        run: flutter pub get
+      - name: 🔑 注入 iOS 相册权限声明 (解决点击无反应的核心！)
+        run: |
+          plutil -insert NSPhotoLibraryUsageDescription -string "洗白脚本需要读取相册以提取您的原视频" ios/Runner/Info.plist
+          plutil -insert NSPhotoLibraryAddUsageDescription -string "洗白脚本需要将处理后的防风控视频保存到相册" ios/Runner/Info.plist
 
-      - name: 🚀 开始编译 iOS 无签名版 (跳过证书限制)
+      - name: 🎨 自动生成【黑底白点】桌面图标
+        run: |
+          python3 -m pip install Pillow
+          cat << 'EOF' > generate_icon.py
+          from PIL import Image, ImageDraw
+          img = Image.new('RGB', (1024, 1024), color='black')
+          d = ImageDraw.Draw(img)
+          # 在纯黑背景中央画一个完美的白点
+          d.ellipse((400, 400, 624, 624), fill='white')
+          img.save('icon.png')
+          EOF
+          python3 generate_icon.py
+
+      - name: 📦 下载依赖并替换桌面图标
+        run: |
+          flutter pub get
+          flutter pub run flutter_launcher_icons:main
+
+      - name: 🚀 开始编译 iOS 无签名版
         run: flutter build ios --release --no-codesign
 
       - name: 🧰 封装为 TrollStore 专用 IPA 格式
@@ -37,7 +57,7 @@ jobs:
           cd build/ios/iphoneos
           zip -qr 洗白脚本-TrollStore.ipa Payload
 
-      - name: 🎁 输出巨魔安装包下载链接！
+      - name: 🎁 输出巨魔安装包下载链接
         uses: actions/upload-artifact@v4
         with:
           name: 洗白脚本-iOS-巨魔安装包
