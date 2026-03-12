@@ -22,7 +22,7 @@ class VideoCleanerApp extends StatelessWidget {
       title: '洗白脚本',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212), // 正常的深色背景
+        scaffoldBackgroundColor: const Color(0xFF121212),
         primarySwatch: Colors.blueGrey,
       ),
       home: const CleanerHome(),
@@ -54,6 +54,29 @@ class _CleanerHomeState extends State<CleanerHome> {
     );
   }
 
+  // 新增：极客专用的错误诊断弹窗
+  void _showErrorDialog(String? logs) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("⚠️ 底层诊断日志", style: TextStyle(color: Colors.redAccent, fontSize: 16)),
+        content: SingleChildScrollView(
+          child: Text(
+            logs ?? "无日志输出",
+            style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: "Courier"),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("关闭", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _startCleaning() async {
     try {
       setState(() {
@@ -62,9 +85,7 @@ class _CleanerHomeState extends State<CleanerHome> {
         _statusText = "正在唤醒系统相册...";
       });
 
-      // 如果没有 Info.plist 权限，这里会报错并被下面的 catch 捕获
       final XFile? pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
-      
       if (pickedFile == null) {
         setState(() {
           _isProcessing = false;
@@ -73,12 +94,13 @@ class _CleanerHomeState extends State<CleanerHome> {
         return;
       }
 
-      setState(() => _statusText = "🔍 正在提取底层结构数据...");
+      setState(() => _statusText = "🔍 正在扫描视频底层结构...");
 
       final String inputPath = pickedFile.path;
       double duration = 0.0;
       int width = 0;
       int height = 0;
+      bool hasAudio = false; // 新增：音频轨道探测器
       
       final mediaInfoSession = await FFprobeKit.getMediaInformation(inputPath);
       final mediaInfo = mediaInfoSession.getMediaInformation();
@@ -90,7 +112,9 @@ class _CleanerHomeState extends State<CleanerHome> {
           if (stream.getType() == "video") {
             width = stream.getWidth() ?? 0;
             height = stream.getHeight() ?? 0;
-            break;
+          }
+          if (stream.getType() == "audio") {
+            hasAudio = true; // 发现音轨！
           }
         }
       }
@@ -114,6 +138,7 @@ class _CleanerHomeState extends State<CleanerHome> {
         duration: duration,
         origW: width,
         origH: height,
+        hasAudio: hasAudio, // 将探测结果传给武器库
       );
 
       setState(() => _statusText = "🔥 硬件加速重构中...");
@@ -125,10 +150,8 @@ class _CleanerHomeState extends State<CleanerHome> {
           if (ReturnCode.isSuccess(returnCode)) {
             setState(() => _statusText = "📥 正在安全写入相册...");
             
-            // 存回相册
             await Gal.putVideo(outputPath);
             
-            // 擦除痕迹
             try {
               File(outputPath).deleteSync();
               File(inputPath).deleteSync();
@@ -143,13 +166,13 @@ class _CleanerHomeState extends State<CleanerHome> {
             _showDeletePrompt();
 
           } else {
+            // 核心变动：抓取报错日志并强制弹窗展示
             final failLogs = await session.getLogsAsString();
             setState(() {
               _isProcessing = false;
-              _statusText = "❌ 处理失败";
+              _statusText = "❌ 处理失败，请查看日志";
             });
-            print("FFmpeg Error: $failLogs");
-            _showToast("视频重构失败，可能格式不兼容");
+            _showErrorDialog(failLogs);
           }
         },
         (log) {},
@@ -169,7 +192,7 @@ class _CleanerHomeState extends State<CleanerHome> {
         _isProcessing = false;
         _statusText = "❌ 发生致命异常";
       });
-      _showToast("错误详情: $e");
+      _showErrorDialog(e.toString());
     }
   }
 
@@ -213,7 +236,6 @@ class _CleanerHomeState extends State<CleanerHome> {
               const Text("选择防御装甲", style: TextStyle(color: Colors.white54, fontSize: 13)),
               const SizedBox(height: 8),
               
-              // 方案选择器
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
@@ -243,7 +265,6 @@ class _CleanerHomeState extends State<CleanerHome> {
               
               const SizedBox(height: 40),
 
-              // 执行按钮
               GestureDetector(
                 onTap: _isProcessing ? null : _startCleaning,
                 child: Container(
@@ -268,7 +289,6 @@ class _CleanerHomeState extends State<CleanerHome> {
 
               const SizedBox(height: 30),
 
-              // 进度反馈
               if (_isProcessing || _progress == 1.0) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
