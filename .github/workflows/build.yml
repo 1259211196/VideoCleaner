@@ -1,12 +1,12 @@
-name: 自动编译洗白脚本 App
+name: 自动编译洗白脚本 App (iOS 巨魔专属)
 
 on:
   push:
-    branches: [ main ] # 当主分支有代码变动时，自动触发打包
+    branches: [ main ]
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest # 使用 GitHub 免费的 Linux 云服务器
+  build-ios:
+    runs-on: macos-latest # 极其关键：调用 GitHub 免费提供的 Mac 云服务器
 
     steps:
       - name: 📥 拉取最新代码
@@ -15,17 +15,27 @@ jobs:
       - name: 🛠️ 部署云端 Flutter 环境
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0' # 稳定版本
+          flutter-version: '3.19.0'
           channel: 'stable'
 
-      - name: 📦 下载所有依赖武器 (FFmpegKit 等)
+      - name: 🏗️ 自动生成 iOS 底层框架
+        run: flutter create .
+
+      - name: 📦 下载所有依赖武器
         run: flutter pub get
 
-      - name: 🚀 开始疯狂编译 APK
-        run: flutter build apk --release
+      - name: 🚀 开始编译 iOS 无签名版 (跳过证书限制)
+        run: flutter build ios --release --no-codesign
 
-      - name: 🎁 打包完成，输出下载链接！
+      - name: 🧰 封装为 TrollStore 专用 IPA 格式
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -qr 洗白脚本-TrollStore.ipa Payload
+
+      - name: 🎁 输出巨魔安装包下载链接！
         uses: actions/upload-artifact@v3
         with:
-          name: 洗白脚本-Android-安装包
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: 洗白脚本-iOS-巨魔安装包
+          path: build/ios/iphoneos/洗白脚本-TrollStore.ipa
