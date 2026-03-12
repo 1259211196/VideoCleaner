@@ -19,7 +19,7 @@ jobs:
           channel: 'stable'
 
       - name: 🏗️ 自动生成 iOS 底层框架
-        run: flutter create .
+        run: flutter create --project-name video_cleaner .
 
       - name: 📦 下载所有依赖武器
         run: flutter pub get
