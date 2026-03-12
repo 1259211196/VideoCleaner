@@ -9,17 +9,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-    
-  # 🚀 核心武器库：原作者已删库，这里强行接管，指向社区抢救的满血版分支！
   ffmpeg_kit_flutter_full_gpl:
     git:
       url: https://github.com/Sahad2701/ffmpeg_kit_flutter_full_gpl.git
       ref: flutter-upgrade/remove-v1-embedding
-      
   image_picker: ^1.0.7
   path_provider: ^2.1.2
   gal: ^2.3.0
   permission_handler: ^11.3.0
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
+# 告诉插件，把同目录下的 icon.png 设置为手机桌面图标
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "icon.png"
 
 flutter:
   uses-material-design: true
